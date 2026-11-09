@@ -450,3 +450,86 @@ contract DeployMonad is MonadScript {
     vm.stopBroadcast();
   }
 }
+
+// Tydro internal pool on Ink Sepolia: same limits as Tydro mainnet (DeployInk), 5 min cooldowns for testing
+abstract contract DeployTydroInkBase is Script {
+  // Tydro Ink mainnet config (max changes, 1 day cooldown)
+  function _deploy(address pool, address configEngine, address riskCouncil, address executor) internal {
+    _deploy(pool, configEngine, riskCouncil, executor, DeployRiskStewards._getRiskConfigInk());
+  }
+
+  // Tydro Ink mainnet max changes, custom cooldown (testnets)
+  function _deploy(
+    address pool,
+    address configEngine,
+    address riskCouncil,
+    address executor,
+    uint40 delay
+  ) internal {
+    IRiskSteward.Config memory config = DeployRiskStewards._getRiskConfigInk();
+    config.collateralConfig.ltv.minDelay = delay;
+    config.collateralConfig.liquidationThreshold.minDelay = delay;
+    config.collateralConfig.liquidationBonus.minDelay = delay;
+    config.eModeConfig.ltv.minDelay = delay;
+    config.eModeConfig.liquidationThreshold.minDelay = delay;
+    config.eModeConfig.liquidationBonus.minDelay = delay;
+    config.rateConfig.baseVariableBorrowRate.minDelay = delay;
+    config.rateConfig.variableRateSlope1.minDelay = delay;
+    config.rateConfig.variableRateSlope2.minDelay = delay;
+    config.rateConfig.optimalUsageRatio.minDelay = delay;
+    config.capConfig.supplyCap.minDelay = delay;
+    config.capConfig.borrowCap.minDelay = delay;
+    config.priceCapConfig.priceCapLst.minDelay = delay;
+    config.priceCapConfig.priceCapStable.minDelay = delay;
+    config.priceCapConfig.discountRatePendle.minDelay = delay;
+
+    _deploy(pool, configEngine, riskCouncil, executor, config);
+  }
+
+  function _deploy(
+    address pool,
+    address configEngine,
+    address riskCouncil,
+    address executor,
+    IRiskSteward.Config memory config
+  ) internal {
+    require(
+      pool != address(0) && configEngine != address(0) && riskCouncil != address(0) && executor != address(0),
+      'placeholder'
+    );
+
+    vm.startBroadcast();
+    RiskSteward steward = new RiskSteward(pool, configEngine, riskCouncil, executor, config);
+    vm.stopBroadcast();
+
+    require(steward.RISK_COUNCIL() == riskCouncil && steward.owner() == executor, 'steward roles');
+  }
+}
+
+// forge script scripts/deploy/DeployStewards.s.sol:DeployTydroInkSepolia --rpc-url <ink sepolia> --browser --sender <deployer> --slow --broadcast
+contract DeployTydroInkSepolia is DeployTydroInkBase {
+  function run() external {
+    require(block.chainid == 763373, 'not Ink Sepolia');
+    _deploy(
+      0xa1176A315F64500dB4B3e0042A6181221a053882, // Tydro Ink Sepolia pool
+      0x098bB207463E2DC21c10254D1097AFecDEA7B99A, // Tydro Ink Sepolia config engine
+      0x80b0A30Dcd4A5a0e86246FAeF38A74ed40FFC6e5, // 1/3 Safe (risk council)
+      0x7cdcA8a69B66888B0A9702960c2858A36ab39B6b, // permissioned payloads controller executor
+      5 minutes
+    );
+  }
+}
+
+// forge script scripts/deploy/DeployStewards.s.sol:DeployTydroInkSepoliaBitwise --rpc-url <ink sepolia> --browser --slow --broadcast
+contract DeployTydroInkSepoliaBitwise is DeployTydroInkBase {
+  function run() external {
+    require(block.chainid == 763373, 'not Ink Sepolia');
+    _deploy(
+      0x2a0b4f94F2C2D1d9Eb7dB6A28305e26ED7B648A1, // Bitwise Ink Sepolia pool
+      0x166A349De589e71DF7B2cB4a2A8E4f14FE2f9E9e, // Bitwise Ink Sepolia config engine
+      0xd99d77e68C2a0a0c715DC7E572376664dc4700Ab, // Risk Council Safe, 1/3
+      0x3A540F759Ca7c16bf2E2682698ce3278BF14f5CB, // permissioned payloads controller executor
+      1 hours
+    );
+  }
+}
