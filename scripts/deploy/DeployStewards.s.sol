@@ -450,3 +450,71 @@ contract DeployMonad is MonadScript {
     vm.stopBroadcast();
   }
 }
+
+// Tydro internal pool on Ink Sepolia: same limits as Tydro mainnet (DeployInk), 5 min cooldowns for testing
+abstract contract DeployTydroInkBase is Script {
+  // Tydro Ink mainnet config (max changes, 1 day cooldown)
+  function _deploy(address pool, address configEngine, address riskCouncil, address executor) internal {
+    _deploy(pool, configEngine, riskCouncil, executor, DeployRiskStewards._getRiskConfigInk());
+  }
+
+  // Tydro Ink mainnet max changes, custom cooldown (testnets)
+  function _deploy(
+    address pool,
+    address configEngine,
+    address riskCouncil,
+    address executor,
+    uint40 delay
+  ) internal {
+    IRiskSteward.Config memory config = DeployRiskStewards._getRiskConfigInk();
+    config.collateralConfig.ltv.minDelay = delay;
+    config.collateralConfig.liquidationThreshold.minDelay = delay;
+    config.collateralConfig.liquidationBonus.minDelay = delay;
+    config.eModeConfig.ltv.minDelay = delay;
+    config.eModeConfig.liquidationThreshold.minDelay = delay;
+    config.eModeConfig.liquidationBonus.minDelay = delay;
+    config.rateConfig.baseVariableBorrowRate.minDelay = delay;
+    config.rateConfig.variableRateSlope1.minDelay = delay;
+    config.rateConfig.variableRateSlope2.minDelay = delay;
+    config.rateConfig.optimalUsageRatio.minDelay = delay;
+    config.capConfig.supplyCap.minDelay = delay;
+    config.capConfig.borrowCap.minDelay = delay;
+    config.priceCapConfig.priceCapLst.minDelay = delay;
+    config.priceCapConfig.priceCapStable.minDelay = delay;
+    config.priceCapConfig.discountRatePendle.minDelay = delay;
+
+    _deploy(pool, configEngine, riskCouncil, executor, config);
+  }
+
+  function _deploy(
+    address pool,
+    address configEngine,
+    address riskCouncil,
+    address executor,
+    IRiskSteward.Config memory config
+  ) internal {
+    require(
+      pool != address(0) && configEngine != address(0) && riskCouncil != address(0) && executor != address(0),
+      'placeholder'
+    );
+
+    vm.startBroadcast();
+    RiskSteward steward = new RiskSteward(pool, configEngine, riskCouncil, executor, config);
+    vm.stopBroadcast();
+
+    require(steward.RISK_COUNCIL() == riskCouncil && steward.owner() == executor, 'steward roles');
+  }
+}
+
+// forge script scripts/deploy/DeployStewards.s.sol:DeployTydroInkBitwise --rpc-url <ink> --browser --slow --broadcast
+contract DeployTydroInkBitwise is DeployTydroInkBase {
+  function run() external {
+    require(block.chainid == 57073, 'not Ink');
+    _deploy(
+      address(0), // TODO: Bitwise Ink pool
+      address(0), // TODO: Bitwise Ink config engine
+      address(0), // TODO: Risk Council Safe, 1/2 (nested Bitwise + Tydro Safes)
+      address(0) // TODO: permissioned payloads controller executor
+    );
+  }
+}
