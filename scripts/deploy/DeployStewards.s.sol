@@ -451,7 +451,7 @@ contract DeployMonad is MonadScript {
   }
 }
 
-// Tydro internal pool on Ink Sepolia: same limits as Tydro mainnet (DeployInk), 5 min cooldowns for testing
+// Bitwise pool on Ink mainnet: same config as Tydro Ink mainnet (DeployInk), 24h cooldown
 // forge script scripts/deploy/DeployStewards.s.sol:DeployTydroInkBitwise --rpc-url <ink> --browser --slow --broadcast
 contract DeployTydroInkBitwise is Script {
   address public constant POOL = address(0); // TODO: Bitwise pool (step 2 report)
