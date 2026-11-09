@@ -466,11 +466,11 @@ contract DeployTydroInkBitwise is Script {
       'placeholder'
     );
 
-    // Tydro Ink mainnet config: Bitwise's max steps, 24h cooldown
-    IRiskSteward.Config memory config = DeployRiskStewards._getRiskConfigInk();
-
+    // same deploy path as Tydro's Ink steward (DeployInk): _getRiskConfigInk(), 24h cooldown
     vm.startBroadcast();
-    RiskSteward steward = new RiskSteward(POOL, CONFIG_ENGINE, RISK_COUNCIL, EXECUTOR, config);
+    RiskSteward steward = RiskSteward(
+      DeployRiskStewards._deployRiskStewardsInk(POOL, CONFIG_ENGINE, RISK_COUNCIL, EXECUTOR)
+    );
     vm.stopBroadcast();
 
     require(steward.RISK_COUNCIL() == RISK_COUNCIL && steward.owner() == EXECUTOR, 'steward roles');
