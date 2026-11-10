@@ -450,3 +450,29 @@ contract DeployMonad is MonadScript {
     vm.stopBroadcast();
   }
 }
+
+// Bitwise pool on Ink mainnet: same config as Tydro Ink mainnet (DeployInk), 24h cooldown
+// forge script scripts/deploy/DeployStewards.s.sol:DeployTydroInkBitwise --rpc-url <ink> --browser --slow --broadcast
+contract DeployTydroInkBitwise is Script {
+  address public constant POOL = 0xBfF9343Df8680Fa4B7a04a3F0265965a5fEb60c4;
+  address public constant CONFIG_ENGINE = 0x309018cd478c7e35E4343cB505e0f2929c08247f;
+  address public constant RISK_COUNCIL = 0x5b75b2A948a7eF1979734c124B9574837f60a3f6; // Risk Council Safe, 1/2 (Bitwise + Tydro)
+  address public constant EXECUTOR = 0x4a8c5c312DDB1f2407E358742c3Ff04404A09DB8;
+
+  function run() external {
+    require(block.chainid == 57073, 'not Ink');
+    require(
+      POOL != address(0) && CONFIG_ENGINE != address(0) && RISK_COUNCIL != address(0) && EXECUTOR != address(0),
+      'placeholder'
+    );
+
+    // same deploy path as Tydro's Ink steward (DeployInk): _getRiskConfigInk(), 24h cooldown
+    vm.startBroadcast();
+    RiskSteward steward = RiskSteward(
+      DeployRiskStewards._deployRiskStewardsInk(POOL, CONFIG_ENGINE, RISK_COUNCIL, EXECUTOR)
+    );
+    vm.stopBroadcast();
+
+    require(steward.RISK_COUNCIL() == RISK_COUNCIL && steward.owner() == EXECUTOR, 'steward roles');
+  }
+}
