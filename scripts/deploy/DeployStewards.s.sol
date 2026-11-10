@@ -456,7 +456,7 @@ contract DeployMonad is MonadScript {
 contract DeployTydroInkBitwise is Script {
   address public constant POOL = address(0); // TODO: Bitwise pool (step 2 report)
   address public constant CONFIG_ENGINE = address(0); // TODO: Bitwise config engine (step 2 report)
-  address public constant RISK_COUNCIL = address(0); // TODO: Risk Council Safe, 1/2 (nested Bitwise + Tydro Safes)
+  address public constant RISK_COUNCIL = 0x5b75b2A948a7eF1979734c124B9574837f60a3f6; // Risk Council Safe, 1/2 (Bitwise + Tydro)
   address public constant EXECUTOR = address(0); // TODO: governance Executor (step 1), steward owner
 
   function run() external {
